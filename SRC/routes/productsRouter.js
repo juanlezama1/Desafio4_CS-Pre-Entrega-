@@ -1,5 +1,5 @@
 import { Router } from "express"
-import ProductManager from '../ProductManager.js'
+import ProductManager from '../config/ProductManager.js'
 let gestor_productos = new ProductManager ('./SRC/DataBase/db.json')
 
 const productsRouter = Router ()
