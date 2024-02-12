@@ -18,28 +18,36 @@ class ProductManager {
         console.log("Gestor de productos generado correctamente!")
     }
 
-    // Recibe un objeto del tipo "Product" y lo carga al arreglo
+    // Crea el objeto del tipo "Product" y lo carga al arreglo
     addProduct = async (product) => {
- 
-        // Valido que el parámetro recibido sea un producto, y un producto completo
-        if (!(product instanceof Product)|| !product.title || !product.description || !product.price || !product.thumbnail || !product.stock ||!product.code ||!product.id)
 
-        {
-            console.error("Sólo es posible agregar productos completos!")
-            return
+        // Intento generar un producto a raíz de lo que mandó el usuario
+        // Si puedo hacerlo, es porque es un producto válido.
+        // Caso contrario, devuelvo código de error
+
+        let new_product
+
+        try {
+            new_product = new Product (product)
         }
 
+        catch (error)
+
+        {
+            return -1
+        }
+ 
         // Valido que el path no sea nulo
         if (!this.path)
 
         {
-            console.error('El path ingresado no es correcto!')
+            console.error('Usuario ingresó path inválido')
             return
         }
 
         let my_products
 
-        // Intento leer mi base, por si ya existe y debo agregar más productos
+        // Intento leer mi base, por si hay una DB, y sólo le agregaría productos
         try {
             my_products = JSON.parse(await fs.readFile(this.path, 'utf-8'))
 
@@ -57,17 +65,18 @@ class ProductManager {
 
         // Valido que no se repita el campo "code"
 
-        if (my_products.find(my_product => my_product.code === product.code))
+        if (my_products.find(my_product => my_product.code === new_product.code))
 
         {
-            console.error("Producto previamente cargado!") // Si ya está cargado, aviso
-            return
+            console.log("Usuario intentó agregar producto previamente cargado") // Si ya está cargado, aviso
+            return "Producto previamente cargado!"
         }
 
         // Caso contrario, lo agrego.
-        my_products.push(product)
+        my_products.push(new_product)
         await fs.writeFile(this.path, JSON.stringify(my_products))  
-        console.log(`Producto '${product.title}' agregado correctamente a la base!`)
+        console.log(`Usuario agregó el producto '${new_product.title}' a la base!`)
+        return `Producto ${new_product.title} agregado correctamente a la base!`
     }
 
     // Devolverá el arreglo de todos los productos hasta el momento ó (-1) si no hay productos 
@@ -154,25 +163,44 @@ class ProductManager {
             return
         }
 
+        // Intento generar un producto a raíz del "producto" que mandaron para verificar si es correcto.
+
+        let my_product
+
+        try {
+            my_product = new Product (new_product)
+        }
+
+        catch (error)
+
+        {
+            console.log("Usuario envió producto incompleto")
+            return -2
+        }
+
         // Intento buscar el índice del producto que coincida con el código
         let element_index = my_products.findIndex(product => product.code === code)
 
         if (element_index === -1)
 
         {
-            console.error ("Código no encontrado!")
-            return
+            console.log ("Usuario intentó actualizar producto no existente en DB")
+            return -1
         }
 
         // Actualizo los campos, excepto el del código/id
-        my_products[element_index].title = new_product.title
-        my_products[element_index].description = new_product.description
-        my_products[element_index].price = new_product.price
-        my_products[element_index].thumbnail = new_product.thumbnail
-        my_products[element_index].stock = new_product.stock
+
+        my_products[element_index].title = my_product.title
+        my_products[element_index].description = my_product.description
+        my_products[element_index].price = my_product.price
+        my_products[element_index].stock = my_product.stock
+        my_products[element_index].status = my_product.status
+        my_products[element_index].category = my_product.category
+        my_products[element_index].thumbnail = my_product.thumbnail
 
         // Vuelvo a guardar el arreglo en el JSON
         await fs.writeFile(this.path, JSON.stringify(my_products))
+        console.log("Producto actualizado!")
     }
 
     deleteProduct = async (code) => {
@@ -208,8 +236,8 @@ class ProductManager {
 
         // Caso contrario, doy el aviso
         else {
-            console.error("Imposible borrar, producto no encontrado en la base!")
-            return
+            console.log("Imposible borrar, producto no encontrado en la base!")
+            return -1
         }
     }
 
